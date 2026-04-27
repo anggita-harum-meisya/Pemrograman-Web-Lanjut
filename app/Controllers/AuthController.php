@@ -25,7 +25,9 @@ class AuthController extends BaseController
                     session()->set([
                         'username' => $dataUser['username'],
                         'role' => $dataUser['role'],
-                        'isLoggedIn' => TRUE
+                        'isLoggedIn' => TRUE,
+                        'email' => 'admin@gmail.com',
+                        'time' => date('Y-m-d H:i:s')
                     ]);
 
                     return redirect()->to(base_url('/'));

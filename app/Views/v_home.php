@@ -10,7 +10,7 @@
         <th scope="col">Age</th>
         <th scope="col">Start Date</th>
         </tr>
-    /thead>
+    </thead>
     <tbody>
         <tr>
         <th scope="row">1</th>
@@ -19,7 +19,7 @@
         <td>28</td>
         <td>2016-05-25</td>
         </tr>
-        tr>
+        <tr>
         <th scope="row">2</th>
         <td>Bridie Kessler</td>
         <td>Developer</td>
