@@ -11,6 +11,9 @@ use Dompdf\Dompdf;
 class ProdukController extends BaseController
 {
     protected $productModel;
+    
+    // Tambahkan baris ini agar semua fungsi Form Helper otomatis aktif di semua method/fungsi
+    protected $helpers = ['form'];
 
     public function __construct()
     {

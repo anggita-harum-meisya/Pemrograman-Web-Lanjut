@@ -67,7 +67,7 @@ if (session()->getFlashData('failed')) {
 </table>
 <!-- End Table with stripped rows -->
 
-<?=  $this->include('produk/modal_add') ?>
+<?= $this->include('produk/modal_add') ?>
 <?= $this->include('produk/modal_edit') ?>
 
 <?= $this->endSection() ?>

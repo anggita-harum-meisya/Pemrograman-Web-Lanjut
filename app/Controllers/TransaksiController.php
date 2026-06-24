@@ -186,7 +186,6 @@ class TransaksiController extends BaseController
         'status'      => 0, 
     ];
 
-    // insert transaction
     if (!$this->transactionModel->insert($transaction)) {
         $db->transRollback();
         return redirect()->back()->with('error', 'Gagal membuat transaksi');
@@ -194,7 +193,6 @@ class TransaksiController extends BaseController
 
     $transactionId = $this->transactionModel->getInsertID();
 
-    // insert transaction detail
     foreach ($cartItems as $item) {
         $this->transactionDetailModel->insert([
             'transaction_id' => $transactionId,
@@ -210,9 +208,25 @@ class TransaksiController extends BaseController
     if (!$db->transStatus()) {
         return redirect()->back()->with('error', 'Gagal membuat transaksi');
     }
-
-		//hapus session keranjang belanja 
+ 
     $this->cart->destroy();
     return redirect()->to(base_url());
+}
+public function history()
+{
+    $username = session()->get('username'); 
+ 
+    $transactions = $this->transactionModel->where('username', $username)->findAll();
+    $transactionIds = array_column($transactions, 'id');
+
+    $products = $this->transactionDetailModel->getProductsByTransactionIds($transactionIds);
+
+    $data = [
+        'username'      => $username,
+        'transactions'  => $transactions,
+        'products'      => $products
+    ]; 
+
+    return view('v_history', $data);
 }
 }
