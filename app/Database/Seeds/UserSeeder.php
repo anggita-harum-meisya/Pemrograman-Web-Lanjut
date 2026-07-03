@@ -17,6 +17,7 @@ class UserSeeder extends Seeder
                 'password' => password_hash('1234567', PASSWORD_DEFAULT),
                 'role' => $faker->randomElement(['admin', 'guest']),
                 'created_at' => date("Y-m-d H:i:s"),
+                'updated_at' => date('Y-m-d H:i:s'),
             ];
             //print_r($data);
             $this->db->table('user')->insert($data);

@@ -41,29 +41,32 @@ if (session()->getFlashData('failed')) {
             <th scope="col"></th>
         </tr>
     </thead>
-    <tbody>
-        <?php foreach ($products as $index => $produk) : ?>
-            <tr>
-                <th scope="row"><?= $index + 1 ?></th>
-                <td><?= $produk['nama'] ?></td>
-                <td><?= $produk['harga'] ?></td>
-                <td><?= $produk['jumlah'] ?></td>
-                <td>
-                    <?php if (!empty($produk['foto']) && file_exists(FCPATH . 'img/' . $produk['foto'])) : ?>
-                        <img src="<?= base_url('img/' . $produk['foto']) ?>" width="100">
-                    <?php endif; ?>
-                </td>
-                <td>
-                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#editModal-<?= $produk['id'] ?>">
-                        Ubah
-                    </button>
-                    <a href="<?= base_url('produk/delete/' . $produk['id']) ?>" class="btn btn-danger" onclick="return confirm('Yakin hapus data ini ?')">
-                        Hapus
-                    </a>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-    </tbody>
+   <tbody>
+    <?php foreach ($products as $index => $produk) : ?>
+        <tr>
+            <th scope="row"><?= $index + 1 ?></th>
+            <td><?= $produk['nama'] ?></td>
+            <td><?= $produk['harga'] ?></td>
+            <td><?= $produk['jumlah'] ?></td>
+            <td>
+                <?php if (!empty($produk['foto']) && file_exists(FCPATH . 'img/' . $produk['foto'])) : ?>
+                    <img src="<?= base_url('img/' . $produk['foto']) ?>" width="100">
+                <?php endif; ?>
+            </td>
+            <td>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#editModal-<?= $produk['id'] ?>">
+                    Ubah
+                </button>
+                <a href="<?= base_url('produk/delete/' . $produk['id']) ?>" class="btn btn-danger" onclick="return confirm('Yakin hapus data ini ?')">
+                    Hapus
+                </a>
+            </td>
+        </tr>
+
+        <?= $this->include('produk/modal_edit') ?>
+
+    <?php endforeach; ?>
+</tbody>
 </table>
 <!-- End Table with stripped rows -->
 

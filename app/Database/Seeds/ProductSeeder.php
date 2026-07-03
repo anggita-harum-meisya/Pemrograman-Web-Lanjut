@@ -8,7 +8,7 @@ class ProductSeeder extends Seeder
 {
     public function run()
     {
-        // membuat data
+       
         $data = [
             [
                 'nama' => 'ASUS TUF A15 FA506NF',
@@ -34,7 +34,7 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($data as $item) {
-            // insert semua data ke tabel
+           
             $this->db->table('product')->insert($item);
         }
     }

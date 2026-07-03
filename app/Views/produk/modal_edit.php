@@ -2,17 +2,17 @@
 
 <?php if (isset($products)) : ?>
     <?php foreach ($products as $index => $produk) : ?>
-        <!-- Edit Modal Begin -->
         <div class="modal fade" id="editModal-<?= $produk['id'] ?>" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
+                
+                <?= form_open_multipart(base_url('produk/edit/' . $produk['id'])) ?>
+                <?= csrf_field() ?>
+
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">Edit Data</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-
-                    <?= form_open_multipart(base_url('produk/edit/' . $produk['id'])) ?>
-                    <?= csrf_field() ?>
 
                     <div class="modal-body">
                         <div class="mb-3">
@@ -91,11 +91,11 @@
 
                         <?= form_submit('submit', 'Simpan', ['class' => 'btn btn-primary']) ?>
                     </div>
-
-                    <?= form_close() ?>
                 </div>
+
+                <?= form_close() ?>
+
             </div>
         </div>
-        <!-- Edit Modal End -->
-    <?php endforeach; ?>
+        <?php endforeach; ?>
 <?php endif; ?>

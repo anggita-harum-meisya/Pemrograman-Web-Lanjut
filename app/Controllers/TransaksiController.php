@@ -18,7 +18,8 @@ class TransaksiController extends BaseController
 
     public function __construct()
     {
-        helper(['number', 'form']);
+        
+        helper(['number', 'form', 'Transaksi_Helper']);
         $this->cart = service('cart');
         $this->transactionModel = new TransactionModel();
         $this->transactionDetailModel = new TransactionDetailModel();
@@ -102,131 +103,180 @@ class TransaksiController extends BaseController
 
     public function checkout()
     {
+        include_once APPPATH . 'Helpers/Transaksi_Helper.php';
+        $subtotal = 0;
+        foreach ($this->cart->contents() as $item) {
+            $subtotal += $item['qty'] * $item['price'];
+        }
+
        
+        $ppn = hitung_ppn($subtotal);
+        $biaya_admin = hitung_biaya_admin($subtotal);
+
         $data = [
-            'items' => $this->cart->contents(),
-            'total' => $this->cart->total()
+            'items'       => $this->cart->contents(),
+            'total'       => $this->cart->total(),
+            'subtotal'    => $subtotal,
+            'ppn'         => $ppn,          
+            'biaya_admin' => $biaya_admin   
         ];
 
         return view('v_checkout', $data);
     }
+
     public function destinations()
     {
-    $search = $this->request->getGet('q'); 
+        $search = $this->request->getGet('q');
 
-    if (empty($search)){
+        if (empty($search)) {
+            return $this->response->setJSON([
+                'results' => []
+            ]);
+        }
+
+        $service = new RajaOngkirService();
+        
+       
+        if (method_exists($service, 'getDestination')) {
+            $response = $service->getDestination($search);
+        } else {
+            $response = $service->getDestinations($search);
+        }
+
+        $results = [];
+      
+        $data = $response['data'] ?? $response['results'] ?? $response ?? [];
+
+        if (is_array($data)) {
+            foreach ($data as $item) {
+                $results[] = [
+                   
+                    'id'   => $item['id'] ?? $item['subdistrict_id'] ?? $item['city_id'] ?? '',
+                    'text' => $item['label'] ?? $item['subdistrict_name'] ?? $item['city_name'] ?? ($item['nama'] ?? '')
+                ];
+            }
+        }
+
         return $this->response->setJSON([
-            'results' =>[]
+            'results' => $results
         ]);
     }
 
-    $service = new RajaOngkirService();
-    $response = $service->getDestination($search);
-
-    $results = [];
-    $data = $response['data'] ?? [];
-
-    foreach ($data as $item) {
-        $results[] = [
-        'id'   => $item['id'],
-        'text' => $item['label']
-    ];
-}
-    return $this->response->setJSON([
-        'results' => $results
-    ]);
-    }
     public function costs()
-{
-    $origin = '64999';
-    $destination = $this->request->getGet('destination');
-    $weight = '1000';
-    $courier = 'jne'; 
+    {
+        $origin = '64999';
+        $destination = $this->request->getGet('destination');
+        $weight = '1000';
+        $courier = 'jne'; 
 
-    $service = new RajaOngkirService();
-    $response = $service->getCost($origin, $destination, $weight, $courier);
+        $service = new RajaOngkirService();
+        
+     
+        if (method_exists($service, 'getCost')) {
+            $response = $service->getCost($origin, $destination, $weight, $courier);
+        } else {
+            $response = $service->getCosts($origin, $destination, $weight, $courier);
+        }
 
-    $results = [];
-    $data = $response['data'] ?? [];
+        $results = [];
+        $data = $response['data'] ?? $response ?? [];
 
-    foreach ($data as $item) {
-        $results[] = [
-            'service'     => $item['service'],
-            'description' => $item['description'],
-            'cost'        => $item['cost'],
-            'etd'         => $item['etd']
+        if (is_array($data)) {
+            foreach ($data as $item) {
+                $results[] = [
+                    'service'     => $item['service'] ?? '',
+                    'description' => $item['description'] ?? '',
+                    'cost'        => $item['cost'] ?? 0,
+                    'etd'         => $item['etd'] ?? ''
+                ];
+            }
+        }
+
+        return $this->response->setJSON($results);
+    }
+   public function buy()
+    { 
+        $cartItems = $this->cart->contents();
+
+        if (empty($cartItems)) {
+            return redirect()->back();
+        }
+
+        include_once APPPATH . 'Helpers/Transaksi_Helper.php'; 
+
+        $db = \Config\Database::connect();
+        $db->transStart(); 
+
+        $subtotal = 0;
+        foreach ($cartItems as $item) {
+            $subtotal += $item['qty'] * $item['price'];
+        }
+
+        $ongkir = (int) $this->request->getPost('ongkir');
+           
+        $kupon_code = $this->request->getPost('kupon_code') ?? '';
+              
+        $diskon_kupon = hitung_diskon_kupon($subtotal, $kupon_code);
+
+        $ppn = hitung_ppn($subtotal);
+        $biaya_admin = hitung_biaya_admin($subtotal);
+
+        $grand_total = $subtotal - $diskon_kupon + $ppn + $biaya_admin + $ongkir;
+
+        $transaction = [
+            'username'     => $this->request->getPost('username'),
+            'alamat'       => $this->request->getPost('alamat'),
+            'ongkir'       => $ongkir,
+            'ppn'          => $ppn,          
+            'biaya_admin'  => $biaya_admin,  
+            'kupon_code'   => !empty($kupon_code) && $diskon_kupon > 0 ? strtoupper($kupon_code) : null, 
+            'diskon_kupon' => $diskon_kupon,
+            'total_harga'  => $grand_total,  
+            'status'       => 0, 
         ];
+
+        if (!$this->transactionModel->insert($transaction)) {
+            $db->transRollback();
+            return redirect()->back()->with('error', 'Gagal membuat transaksi');
+        }
+
+        $transactionId = $this->transactionModel->getInsertID();
+
+        foreach ($cartItems as $item) {
+            $this->transactionDetailModel->insert([
+                'transaction_id' => $transactionId,
+                'product_id'     => $item['id'],
+                'jumlah'         => $item['qty'],
+                'diskon'         => 0,
+                'subtotal_harga' => $item['qty'] * $item['price'] 
+            ]);
+        }
+
+        $db->transComplete();
+
+        if (!$db->transStatus()) {
+            return redirect()->back()->with('error', 'Gagal membuat transaksi');
+        }
+     
+        $this->cart->destroy();
+        return redirect()->to(base_url())->with('success', 'Pesanan Berhasil Dibuat!');
     }
 
-    return $this->response->setJSON($results);
-}
-    public function buy()
-{ 
-    $cartItems = $this->cart->contents();
+    public function history()
+    {
+        $username = session()->get('username'); 
+     
+        $transactions = $this->transactionModel->where('username', $username)->findAll();
+        $transactionIds = array_column($transactions, 'id');
 
-    if (empty($cartItems)) {
-        return redirect()->back();
+        $products = $this->transactionDetailModel->getProductsByTransactionIds($transactionIds);
+
+        $data = [
+            'username'      => $username,
+            'transactions'  => $transactions,
+            'products'      => $products
+        ]; 
+
+        return view('v_history', $data);
     }
-
-    $db = \Config\Database::connect();
-    $db->transStart(); 
-
-    $subtotal = 0;
-    foreach ($cartItems as $item) {
-        $subtotal += $item['qty'] * $item['price'];
-    }
-
-    $ongkir = (int) $this->request->getPost('ongkir');
-
-    $transaction = [
-        'username'    => $this->request->getPost('username'),
-        'alamat'      => $this->request->getPost('alamat'),
-        'ongkir'      => $ongkir,
-        'total_harga' => $subtotal + $ongkir,
-        'status'      => 0, 
-    ];
-
-    if (!$this->transactionModel->insert($transaction)) {
-        $db->transRollback();
-        return redirect()->back()->with('error', 'Gagal membuat transaksi');
-    }
-
-    $transactionId = $this->transactionModel->getInsertID();
-
-    foreach ($cartItems as $item) {
-        $this->transactionDetailModel->insert([
-            'transaction_id' => $transactionId,
-            'product_id'     => $item['id'],
-            'jumlah'         => $item['qty'],
-            'diskon'         => 0,
-            'subtotal_harga' => $item['qty'] * $item['price'] 
-        ]);
-    }
-
-    $db->transComplete();
-
-    if (!$db->transStatus()) {
-        return redirect()->back()->with('error', 'Gagal membuat transaksi');
-    }
- 
-    $this->cart->destroy();
-    return redirect()->to(base_url());
-}
-public function history()
-{
-    $username = session()->get('username'); 
- 
-    $transactions = $this->transactionModel->where('username', $username)->findAll();
-    $transactionIds = array_column($transactions, 'id');
-
-    $products = $this->transactionDetailModel->getProductsByTransactionIds($transactionIds);
-
-    $data = [
-        'username'      => $username,
-        'transactions'  => $transactions,
-        'products'      => $products
-    ]; 
-
-    return view('v_history', $data);
-}
 }

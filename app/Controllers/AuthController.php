@@ -17,12 +17,12 @@ class AuthController extends BaseController
 
 
 
-    public function login()
-    {
-    if ($this->request->getPost()) {
+   public function login()
+{
+  if ($this->request->getPost()) {
         $rules = [
             'username' => 'required|min_length[6]',
-            'password' => 'required|min_length[7]|numeric',
+            'password' => 'required|min_length[7]', 
         ];
             
         if ($this->validate($rules)) {
@@ -34,7 +34,7 @@ class AuthController extends BaseController
                 ->first();
 
             if ($dataUser) {
-
+            
                 if (password_verify($password, $dataUser['password'])) {
 
                     session()->set([
@@ -46,36 +46,27 @@ class AuthController extends BaseController
                     ]);
 
                     return redirect()->to(base_url('/'));
-
                 
                 } else {
-                    session()->setFlashdata('failed', $this->validator->listErrors());
+               
+                    session()->setFlashdata('failed', 'Password Salah');
                     return redirect()->back();
                 }
-                    } else {
-
-                    session()->setFlashdata(
-                        'failed',
-                        'Password Salah'
-                    );
-
-                    return redirect()->back();
-                }
-
             } else {
-
-                session()->setFlashdata(
-                    'failed',
-                    'Username Tidak Ditemukan'
-                );
-
+               
+                session()->setFlashdata('failed', 'Username Tidak Ditemukan');
                 return redirect()->back();
             }
 
+        } else {
+         
+            session()->setFlashdata('failed', $this->validator->listErrors());
+            return redirect()->back();
         }
-
-        return view('v_login');
     }
+
+    return view('v_login');
+}
 
     public function logout()
     {

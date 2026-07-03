@@ -32,6 +32,25 @@ class Transaction extends Migration
                 'type' => 'DOUBLE',
                 'null' => TRUE
             ],
+
+            'ppn' => [
+                'type' => 'DOUBLE',
+                'null' => TRUE 
+            ],
+            'biaya_admin' => [
+                'type' => 'DOUBLE',
+                'null' => TRUE 
+            ],
+            'kupon_code' => [
+                'type' => 'VARCHAR',
+                'constraint' => 20,
+                'null' => TRUE 
+            ],
+            'diskon_kupon' => [
+                'type' => 'DOUBLE',
+                'null' => TRUE 
+            ],
+          
             'status' => [
                 'type' => 'INT',
                 'constraint' => 1,
